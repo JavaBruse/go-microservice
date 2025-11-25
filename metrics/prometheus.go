@@ -44,25 +44,20 @@ func MetricsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		// Увеличиваем счетчик активных запросов
 		ActiveRequests.WithLabelValues(r.Method, r.URL.Path).Inc()
 
-		// Создаем обертку для ResponseWriter для отслеживания статуса
 		rw := &responseWriter{w, http.StatusOK}
 
 		next.ServeHTTP(rw, r)
 
-		// Уменьшаем счетчик активных запросов
 		ActiveRequests.WithLabelValues(r.Method, r.URL.Path).Dec()
 
-		// Фиксируем метрики
 		duration := time.Since(start).Seconds()
 		RequestDuration.WithLabelValues(r.Method, r.URL.Path).Observe(duration)
 		TotalRequests.WithLabelValues(r.Method, r.URL.Path, http.StatusText(rw.status)).Inc()
 	})
 }
 
-// responseWriter обертка для http.ResponseWriter для отслеживания статуса
 type responseWriter struct {
 	http.ResponseWriter
 	status int

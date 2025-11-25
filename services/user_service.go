@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"sync"
+	"time"
 
 	"go-microservice/models"
 
@@ -47,7 +49,7 @@ func (s *UserService) Create(user models.User) models.User {
 	)
 
 	if err != nil {
-		fmt.Printf("Error saving user to MinIO: %v\n", err)
+		log.Printf("Error saving user to MinIO: %v", err)
 	}
 
 	return user
@@ -78,9 +80,13 @@ func (s *UserService) Get(id int) (models.User, bool) {
 func (s *UserService) GetAll() []models.User {
 	var users []models.User
 
-	objCh := s.minioClient.ListObjects(context.Background(), s.bucketName, minio.ListObjectsOptions{})
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	objCh := s.minioClient.ListObjects(ctx, s.bucketName, minio.ListObjectsOptions{})
 	for obj := range objCh {
 		if obj.Err != nil {
+			log.Printf("Error listing object: %v", obj.Err)
 			continue
 		}
 
@@ -91,11 +97,14 @@ func (s *UserService) GetAll() []models.User {
 			minio.GetObjectOptions{},
 		)
 		if err != nil {
+			log.Printf("Error getting object %s: %v", obj.Key, err)
 			continue
 		}
 
 		var user models.User
-		if err := json.NewDecoder(object).Decode(&user); err == nil {
+		if err := json.NewDecoder(object).Decode(&user); err != nil {
+			log.Printf("Error decoding user from %s: %v", obj.Key, err)
+		} else {
 			users = append(users, user)
 		}
 		object.Close()
@@ -122,6 +131,7 @@ func (s *UserService) Update(user models.User) (models.User, bool) {
 	)
 
 	if err != nil {
+		log.Printf("Error updating user in MinIO: %v", err)
 		return models.User{}, false
 	}
 
@@ -138,5 +148,10 @@ func (s *UserService) Delete(id int) bool {
 		minio.RemoveObjectOptions{},
 	)
 
-	return err == nil
+	if err != nil {
+		log.Printf("Error deleting user from MinIO: %v", err)
+		return false
+	}
+
+	return true
 }

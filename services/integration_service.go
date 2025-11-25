@@ -62,7 +62,6 @@ func (s *IntegrationService) CallExternalAPI(url, method string, data map[string
 	}, nil
 }
 
-// Вспомогательная структура для преобразования данных в io.Reader
 type byteReader struct {
 	data []byte
 	pos  int

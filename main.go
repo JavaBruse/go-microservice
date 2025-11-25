@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"go-microservice/handler"
+	"go-microservice/handlers"
 	"go-microservice/metrics"
 	"go-microservice/services"
 	"go-microservice/utils"

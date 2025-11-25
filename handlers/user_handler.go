@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"go-microservice/models"
 	"go-microservice/services"
@@ -22,23 +23,29 @@ func NewUserHandler(userService *services.UserService) *UserHandler {
 	}
 }
 
+func isValidEmail(email string) bool {
+	return strings.Contains(email, "@") && strings.Contains(email, ".")
+}
+
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// Валидация
 	if user.Name == "" || user.Email == "" {
 		http.Error(w, "Name and email are required", http.StatusBadRequest)
 		return
 	}
 
-	// Сохранение пользователя
+	if !isValidEmail(user.Email) {
+		http.Error(w, "Invalid email format", http.StatusBadRequest)
+		return
+	}
+
 	savedUser := h.userService.Create(user)
 
-	// Асинхронное логирование
 	go utils.LogUserAction("CREATE", savedUser.ID)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -60,7 +67,6 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Асинхронное логирование
 	go utils.LogUserAction("GET", user.ID)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -70,7 +76,6 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	users := h.userService.GetAll()
 
-	// Асинхронное логирование
 	go utils.LogUserAction("GET_ALL", 0)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -98,7 +103,6 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Асинхронное логирование
 	go utils.LogUserAction("UPDATE", updatedUser.ID)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -119,7 +123,6 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Асинхронное логирование
 	go utils.LogUserAction("DELETE", id)
 
 	w.WriteHeader(http.StatusNoContent)
