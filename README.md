@@ -1,4 +1,4 @@
-## Go haiload project
+# Go High-Load CRUD API
 
 ## Сборка
 ```shell
@@ -44,6 +44,7 @@ go-microservice/
 │   └── rate_limiter.go
 ├── metrics/
 │   └── prometheus.go
+├── prometheus.yml
 ├── go.mod
 ├── go.sum
 ├── Dockerfile
