@@ -47,11 +47,11 @@ kubectl get pods -A
 ### 2. Docker build
 
 ```shell
-# сборка
+# Сблорка
 go build -o main .
-# упаклвка
+# Упаковка
 docker build -t go-microservice:latest .
-# загрузка
+# Загрузка
 minikube image load go-microservice:latest
 ```
 
@@ -78,7 +78,10 @@ kubectl apply -f k8s/redis-deployment.yaml
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/prometheus-deployment.yaml
 ```
-
+- Проверка
+```bash
+kubectl get all -n iot-analitics
+```
 ![img_7.png](img_7.png)
 
 ### 4. Пробрасываем порты grafana
@@ -87,8 +90,6 @@ kubectl apply -f k8s/prometheus-deployment.yaml
 kubectl port-forward svc/grafana 3000:3000 -n iot-analytics --address='0.0.0.0'
 ```
 ### 5. Grafana графики
-
-```cookie
 - Панель 1: Нагрузка и RPS
 
 ```cookie
@@ -96,7 +97,6 @@ kubectl port-forward svc/grafana 3000:3000 -n iot-analytics --address='0.0.0.0'
 Запрос 1: rate(http_requests_total{app="go-microservice"}[1m])
 Запрос 2: rolling_average_rps{app="go-microservice"}
 ```
-
 - Панель 2: Аномалии
 
 ```cookie
