@@ -49,24 +49,26 @@ func initRedis() *redis.Client {
 		return nil
 	}
 
-	log.Println("Redis connected successfully")
+	log.Println("✅ Redis connected successfully")
 	return redisClient
 }
 
 func main() {
 	redisClient := initRedis()
 	analyticsService := services.NewAnalyticsService(50, redisClient)
-
 	metricsHandler := handlers.NewMetricsHandler(analyticsService)
 
 	r := mux.NewRouter()
-	r.Use(utils.RateLimitMiddleware)
-	r.Use(metrics.MetricsMiddleware)
 
-	analyticsRouter := r.PathPrefix("/api/analytics").Subrouter()
-	analyticsRouter.HandleFunc("/metrics", metricsHandler.ReceiveMetrics).Methods("POST")
-	analyticsRouter.HandleFunc("/stats", metricsHandler.GetAnalytics).Methods("GET")
-	analyticsRouter.HandleFunc("/anomalies", func(w http.ResponseWriter, r *http.Request) {
+	// Middleware ДО объявления маршрутов
+	routerWithMiddleware := r.PathPrefix("").Subrouter()
+	routerWithMiddleware.Use(utils.RateLimitMiddleware)
+	routerWithMiddleware.Use(metrics.MetricsMiddleware)
+
+	// Все маршруты через routerWithMiddleware
+	routerWithMiddleware.HandleFunc("/api/analytics/metrics", metricsHandler.ReceiveMetrics).Methods("POST")
+	routerWithMiddleware.HandleFunc("/api/analytics/stats", metricsHandler.GetAnalytics).Methods("GET")
+	routerWithMiddleware.HandleFunc("/api/analytics/anomalies", func(w http.ResponseWriter, r *http.Request) {
 		anomalies, err := analyticsService.GetRecentAnomalies(10)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -79,7 +81,7 @@ func main() {
 		})
 	}).Methods("GET")
 
-	analyticsRouter.HandleFunc("/cache/stats", func(w http.ResponseWriter, r *http.Request) {
+	routerWithMiddleware.HandleFunc("/api/analytics/cache/stats", func(w http.ResponseWriter, r *http.Request) {
 		cacheSize, err := analyticsService.GetCacheStats()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -93,6 +95,7 @@ func main() {
 		})
 	}).Methods("GET")
 
+	// Метрики Prometheus и health без middleware
 	r.Handle("/metrics", promhttp.Handler())
 
 	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -114,23 +117,6 @@ func main() {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
-	}).Methods("GET")
-
-	r.HandleFunc("/redis/info", func(w http.ResponseWriter, r *http.Request) {
-		if redisClient == nil {
-			http.Error(w, "Redis not available", http.StatusServiceUnavailable)
-			return
-		}
-
-		ctx := context.Background()
-		info, err := redisClient.Info(ctx).Result()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "text/plain")
-		w.Write([]byte(info))
 	}).Methods("GET")
 
 	srv := &http.Server{
