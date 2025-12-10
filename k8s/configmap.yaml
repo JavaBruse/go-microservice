@@ -8,7 +8,6 @@ data:
   analytics.threshold: "2.0"
   redis.host: "redis"
   redis.port: "6379"
-  redis.password: "redispass123"
   redis.max_memory: "256mb"
   redis.eviction_policy: "allkeys-lru"
   cache.ttl_minutes: "5"
