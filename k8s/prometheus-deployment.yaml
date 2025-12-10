@@ -10,7 +10,7 @@ data:
     scrape_configs:
       - job_name: 'go-microservice'
         static_configs:
-          - targets: ['go-microservice:8080']
+          - targets: ['go-microservice:80']
 ---
 apiVersion: apps/v1
 kind: Deployment
