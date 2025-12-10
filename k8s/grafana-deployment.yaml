@@ -16,18 +16,12 @@ spec:
       containers:
         - name: grafana
           image: grafana/grafana:latest
-          ports:
-            - containerPort: 3000
+          ports: [{containerPort: 3000}]
           env:
             - name: GF_SECURITY_ADMIN_PASSWORD
               value: "admin"
-            # Внутренний URL до Prometheus
-            - name: GF_DATASOURCE_URL
-              value: "http://prometheus:9090"
           resources:
-            requests:
-              memory: "256Mi"
-              cpu: "250m"
+            requests: {memory: "256Mi", cpu: "250m"}
 ---
 apiVersion: v1
 kind: Service
@@ -35,9 +29,6 @@ metadata:
   name: grafana
   namespace: iot-analytics
 spec:
-  selector:
-    app: grafana
-  ports:
-    - port: 3000
-      targetPort: 3000
-  type: ClusterIP  # ← Для ingress, или NodePort/LoadBalancer для прямого доступа
+  selector: {app: grafana}
+  ports: [{port: 3000, targetPort: 3000}]
+  type: NodePort  # ← ВАЖНО: NodePort вместо ClusterIP
