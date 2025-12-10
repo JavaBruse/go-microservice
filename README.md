@@ -13,50 +13,52 @@
 - Точность детекции >70%
 - False positive <10%
 
-## Архитектура
-```mermaid
-graph TB
-    IoT -->|JSON| API
-    API --> Analytics
-    Analytics --> Redis[(Redis)]
-    Analytics --> Prometheus
-    Prometheus --> Grafana
-    API --> K8S
-    subgraph Analytics
-        Analytics --> Rolling
-        Analytics --> ZScore
-        Analytics --> Goroutines
-    end
-```
 
-## Быстрый старт
-### 1. Setup
-```
-chmod +x setup.sh && ./setup.sh
-```
 
 ## Kubernetes
 ### 1. Minikube
-```
-minikube start --cpus=4 --memory=8g --driver=docker
-minikube addons enable metrics-server
+```bash
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+minikube version
+# Запуск кластера
+minikube start --cpus=6 --memory=10000mb --nodes=2
+minikube status
+#	Конфигурация
+curl -LO https://dl.k8s.io/v1.34.1/bin/linux/amd64/kubectl
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+kubectl cluster-info
+kubectl get nodes
+#	Подготовка кластера:
+kubectl get pods -n kube-system
 minikube addons enable ingress
-eval $(minikube docker-env)
+minikube addons enable metrics-server
+#	Проверка
+kubectl get pods -A
 ```
-
+![img.png](img.png)
 ### 2. Docker build
-```
+```shell
 docker build -t go-microservice:latest .
 minikube image load go-microservice:latest
 ```
+![img_1.png](img_1.png)
 
 ### 3. Deploy
-```
+```shell
 kubectl create namespace iot-analytics
-kubectl apply -f k8s/ -n iot-analytics
+kubectl apply -f k8s/redis-deployment.yaml -n iot-analytics
+kubectl apply -f k8s/configmap.yaml -n iot-analytics
+kubectl apply -f k8s/deployment.yaml -n iot-analytics
+kubectl apply -f k8s/hpa.yaml -n iot-analytics
 kubectl get all -n iot-analytics
 ```
+![img_3.png](img_3.png)
 
+## 4. Пробрасываем порты
+```shell
+kubectl port-forward svc/go-microservice 8080:80 -n iot-analytics &
+```
 ## Prometheus метрики
 ```
 http_requests_total
