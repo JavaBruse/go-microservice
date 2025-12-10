@@ -7,31 +7,11 @@ data:
   prometheus.yml: |
     global:
       scrape_interval: 15s
-      evaluation_interval: 15s
 
     scrape_configs:
       - job_name: 'go-microservice'
         static_configs:
-          - targets: ['go-microservice.iot-analytics.svc.cluster.local:80']
-        metrics_path: /metrics
-        # Дополнительные настройки если нужно
-      
-      - job_name: 'kubernetes-pods'
-        kubernetes_sd_configs:
-          - role: pod
-        relabel_configs:
-          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-            action: keep
-            regex: true
-          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
-            action: replace
-            target_label: __metrics_path__
-            regex: (.+)
-          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
-            action: replace
-            regex: ([^:]+)(?::\d+)?;(\d+)
-            replacement: $1:$2
-            target_label: __address__
+          - targets: ['go-microservice:80']  # ← Просто имя сервиса, работает внутри namespace
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -53,28 +33,15 @@ spec:
           image: prom/prometheus:latest
           args:
             - '--config.file=/etc/prometheus/prometheus.yml'
-            - '--storage.tsdb.path=/prometheus'
-            - '--web.enable-lifecycle'
           ports:
             - containerPort: 9090
           volumeMounts:
             - name: prometheus-config
               mountPath: /etc/prometheus
-            - name: prometheus-data
-              mountPath: /prometheus
-          resources:
-            requests:
-              memory: "512Mi"
-              cpu: "500m"
-            limits:
-              memory: "1Gi"
-              cpu: "1000m"
       volumes:
         - name: prometheus-config
           configMap:
             name: prometheus-config
-        - name: prometheus-data
-          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -87,4 +54,4 @@ spec:
   ports:
     - port: 9090
       targetPort: 9090
-  type: ClusterIP
+  type: ClusterIP  # ← ТОЛЬКО внутри кластера!
