@@ -21,10 +21,25 @@ import (
 )
 
 func initRedis() *redis.Client {
+	// Читаем пароль из переменной окружения
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	redisHost := os.Getenv("REDIS_HOST")
+	redisPort := os.Getenv("REDIS_PORT")
+
+	// Если хост/порт не заданы - используем дефолтные
+	if redisHost == "" {
+		redisHost = "redis"
+	}
+	if redisPort == "" {
+		redisPort = "6379"
+	}
+
+	redisAddr := redisHost + ":" + redisPort
+
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     "redis:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
+		Addr:     redisAddr,
+		Password: redisPassword,
+		DB:       0,
 		PoolSize: 100,
 	})
 
