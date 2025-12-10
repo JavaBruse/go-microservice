@@ -17,8 +17,6 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -44,33 +42,15 @@ func initRedis() *redis.Client {
 }
 
 func main() {
-	// Initialize MinIO (optional, keep for backward compatibility)
-	minioClient, err := minio.New("minio:9000", &minio.Options{
-		Creds:  credentials.NewStaticV4("minioadmin", "minioadmin", ""),
-		Secure: false,
-	})
-
-	bucketName := "users"
-	if err == nil {
-		err = minioClient.MakeBucket(context.Background(), bucketName, minio.MakeBucketOptions{})
-		if err != nil {
-			exists, errBucketExists := minioClient.BucketExists(context.Background(), bucketName)
-			if !exists || errBucketExists != nil {
-				log.Printf("Warning: MinIO not available: %v", err)
-			}
-		}
-	}
 
 	// Initialize Redis
 	redisClient := initRedis()
 
 	// Initialize services
-	userService := services.NewUserService(minioClient, bucketName)
 	integrationService := services.NewIntegrationService()
 	analyticsService := services.NewAnalyticsService(50, redisClient) // window size = 50
 
 	// Initialize handlers
-	userHandler := handlers.NewUserHandler(userService)
 	integrationHandler := handlers.NewIntegrationHandler(integrationService)
 	metricsHandler := handlers.NewMetricsHandler(analyticsService)
 
@@ -81,12 +61,6 @@ func main() {
 	r.Use(metrics.MetricsMiddleware)
 
 	// User routes
-	userRouter := r.PathPrefix("/api/users").Subrouter()
-	userRouter.HandleFunc("", userHandler.CreateUser).Methods("POST")
-	userRouter.HandleFunc("", userHandler.GetAllUsers).Methods("GET")
-	userRouter.HandleFunc("/{id}", userHandler.GetUser).Methods("GET")
-	userRouter.HandleFunc("/{id}", userHandler.UpdateUser).Methods("PUT")
-	userRouter.HandleFunc("/{id}", userHandler.DeleteUser).Methods("DELETE")
 
 	// Integration routes
 	integrationRouter := r.PathPrefix("/api/integrations").Subrouter()
