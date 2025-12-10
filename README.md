@@ -82,7 +82,7 @@ kubectl apply -f k8s/prometheus-deployment.yaml
 kubectl port-forward svc/grafana 3000:3000 -n iot-analytics --address='0.0.0.0'
 ```
 
-### 5. Grafana графики
+````### 5. Grafana графики
 
 - Панель 1: Нагрузка и RPS
 
@@ -110,7 +110,7 @@ kubectl port-forward svc/grafana 3000:3000 -n iot-analytics --address='0.0.0.0'
 Запрос 1: rate(process_cpu_seconds_total[5m]) * 100
 Тип: Time series
 Запрос 2: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) * 1000
-```
+```````
 
 ## Нагрузочное тестирование
 
