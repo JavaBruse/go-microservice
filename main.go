@@ -21,14 +21,12 @@ import (
 )
 
 func initRedis() *redis.Client {
-	// Читаем пароль из переменной окружения
 	redisPassword := os.Getenv("REDIS_PASSWORD")
 	redisHost := os.Getenv("REDIS_HOST")
 	redisPort := os.Getenv("REDIS_PORT")
 
-	// Если хост/порт не заданы - используем дефолтные
 	if redisHost == "" {
-		redisHost = "redis.iot-analytics.svc.cluster.local"
+		redisHost = "redis"
 	}
 	if redisPort == "" {
 		redisPort = "6379"
@@ -43,7 +41,6 @@ func initRedis() *redis.Client {
 		PoolSize: 100,
 	})
 
-	// Проверка подключения
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -52,36 +49,20 @@ func initRedis() *redis.Client {
 		return nil
 	}
 
-	log.Println("✅ Redis connected successfully")
+	log.Println("Redis connected successfully")
 	return redisClient
 }
 
 func main() {
-
-	// Initialize Redis
 	redisClient := initRedis()
+	analyticsService := services.NewAnalyticsService(50, redisClient)
 
-	// Initialize services
-	integrationService := services.NewIntegrationService()
-	analyticsService := services.NewAnalyticsService(50, redisClient) // window size = 50
-
-	// Initialize handlers
-	integrationHandler := handlers.NewIntegrationHandler(integrationService)
 	metricsHandler := handlers.NewMetricsHandler(analyticsService)
 
 	r := mux.NewRouter()
-
-	// Middleware
 	r.Use(utils.RateLimitMiddleware)
 	r.Use(metrics.MetricsMiddleware)
 
-	// User routes
-
-	// Integration routes
-	integrationRouter := r.PathPrefix("/api/integrations").Subrouter()
-	integrationRouter.HandleFunc("/external", integrationHandler.CallExternalAPI).Methods("POST")
-
-	// Metrics and Analytics routes
 	analyticsRouter := r.PathPrefix("/api/analytics").Subrouter()
 	analyticsRouter.HandleFunc("/metrics", metricsHandler.ReceiveMetrics).Methods("POST")
 	analyticsRouter.HandleFunc("/stats", metricsHandler.GetAnalytics).Methods("GET")
@@ -112,12 +93,9 @@ func main() {
 		})
 	}).Methods("GET")
 
-	// Prometheus metrics
 	r.Handle("/metrics", promhttp.Handler())
 
-	// Health check
 	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		// Проверяем Redis
 		redisStatus := "healthy"
 		if redisClient != nil {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -138,7 +116,6 @@ func main() {
 		json.NewEncoder(w).Encode(response)
 	}).Methods("GET")
 
-	// Redis info endpoint
 	r.HandleFunc("/redis/info", func(w http.ResponseWriter, r *http.Request) {
 		if redisClient == nil {
 			http.Error(w, "Redis not available", http.StatusServiceUnavailable)
@@ -156,7 +133,6 @@ func main() {
 		w.Write([]byte(info))
 	}).Methods("GET")
 
-	// Start server with graceful shutdown
 	srv := &http.Server{
 		Handler:      r,
 		Addr:         ":8080",
@@ -164,7 +140,6 @@ func main() {
 		ReadTimeout:  15 * time.Second,
 	}
 
-	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
@@ -178,10 +153,8 @@ func main() {
 	<-quit
 	log.Println("Shutting down server...")
 
-	// Stop analytics service
 	analyticsService.Stop()
 
-	// Close Redis connection
 	if redisClient != nil {
 		redisClient.Close()
 	}

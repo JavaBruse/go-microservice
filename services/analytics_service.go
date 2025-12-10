@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	_ "strconv"
 	"sync"
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"go-microservice/metrics"
 	"go-microservice/models"
 )
 
@@ -39,13 +39,8 @@ func NewAnalyticsService(windowSize int, redisClient *redis.Client) *AnalyticsSe
 		cacheTTL:         5 * time.Minute,
 	}
 
-	// Восстанавливаем состояние из Redis
 	service.restoreFromCache()
-
-	// Запускаем горутину для обработки метрик
 	go service.processMetrics()
-
-	// Запускаем периодическое сохранение в кэш
 	go service.periodicCacheSave()
 
 	return service
@@ -58,7 +53,6 @@ func (s *AnalyticsService) restoreFromCache() {
 
 	ctx := context.Background()
 
-	// Восстанавливаем статистику
 	if stats, err := s.redisClient.Get(ctx, "analytics:stats").Result(); err == nil {
 		var statsData struct {
 			AnomalyCount   int `json:"anomaly_count"`
@@ -70,7 +64,6 @@ func (s *AnalyticsService) restoreFromCache() {
 		}
 	}
 
-	// Восстанавливаем окно метрик
 	if windowData, err := s.redisClient.Get(ctx, "analytics:window").Result(); err == nil {
 		var window []models.Metric
 		if json.Unmarshal([]byte(windowData), &window) == nil {
@@ -99,7 +92,6 @@ func (s *AnalyticsService) saveToCache() {
 	ctx := context.Background()
 	s.mu.RLock()
 
-	// Сохраняем статистику
 	statsData := struct {
 		AnomalyCount   int `json:"anomaly_count"`
 		TotalProcessed int `json:"total_processed"`
@@ -112,19 +104,15 @@ func (s *AnalyticsService) saveToCache() {
 		s.redisClient.Set(ctx, "analytics:stats", statsJSON, s.cacheTTL)
 	}
 
-	// Сохраняем окно метрик
 	if windowJSON, err := json.Marshal(s.metricsWindow); err == nil {
 		s.redisClient.Set(ctx, "analytics:window", windowJSON, s.cacheTTL)
 	}
 
-	// Сохраняем текущее скользящее среднее
 	s.redisClient.Set(ctx, "analytics:rolling_avg", s.rollingAvg, s.cacheTTL)
-
 	s.mu.RUnlock()
 }
 
 func (s *AnalyticsService) AddMetric(metric models.Metric) (float64, bool) {
-	// Кэшируем исходную метрику
 	if s.redisClient != nil {
 		ctx := context.Background()
 		metricKey := fmt.Sprintf("metric:%s:%d", metric.DeviceID, metric.Timestamp.Unix())
@@ -133,10 +121,8 @@ func (s *AnalyticsService) AddMetric(metric models.Metric) (float64, bool) {
 		}
 	}
 
-	// Отправляем метрику в канал для асинхронной обработки
 	s.metricsChan <- metric
 
-	// Возвращаем текущее скользящее среднее
 	s.mu.RLock()
 	avg := s.rollingAvg
 	s.mu.RUnlock()
@@ -156,21 +142,19 @@ func (s *AnalyticsService) processSingleMetric(metric models.Metric) {
 	defer s.mu.Unlock()
 
 	s.totalProcessed++
+	metrics.IncrementMetricsProcessed()
 
-	// Добавляем в окно (скользящее)
 	s.metricsWindow = append(s.metricsWindow, metric)
 	if len(s.metricsWindow) > s.maxWindowSize {
 		s.metricsWindow = s.metricsWindow[1:]
 	}
 
-	// Скользящее среднее для RPS
 	s.rollingAvg = s.calculateRollingAverage()
 
-	// Детекция аномалий через z-score
 	if s.detectAnomaly(metric) {
 		s.anomalyCount++
+		metrics.IncrementAnomaliesDetected()
 
-		// Кэшируем аномалию
 		if s.redisClient != nil {
 			ctx := context.Background()
 			anomalyKey := fmt.Sprintf("anomaly:%d", time.Now().UnixNano())
@@ -185,7 +169,9 @@ func (s *AnalyticsService) processSingleMetric(metric models.Metric) {
 		}
 	}
 
-	// Обновляем кэшированную статистику в Redis
+	metrics.SetRollingAverageRPS(s.rollingAvg)
+	metrics.SetProcessingQueueSize(float64(len(s.metricsChan)))
+
 	if s.redisClient != nil {
 		go s.saveToCache()
 	}
@@ -209,13 +195,11 @@ func (s *AnalyticsService) detectAnomaly(metric models.Metric) bool {
 		return false
 	}
 
-	// Вычисляем среднее и стандартное отклонение для RPS
 	mean, stdDev := s.calculateStats()
 	if stdDev == 0 {
 		return false
 	}
 
-	// Вычисляем z-score
 	zScore := math.Abs(float64(metric.RPS)-mean) / stdDev
 
 	return zScore > s.anomalyThreshold
@@ -297,7 +281,6 @@ func (s *AnalyticsService) GetCacheStats() (int64, error) {
 		return 0, err
 	}
 
-	// Получаем размер кэша
 	var totalSize int64
 	for _, key := range keys {
 		if size, err := s.redisClient.MemoryUsage(ctx, key).Result(); err == nil {
@@ -311,7 +294,5 @@ func (s *AnalyticsService) GetCacheStats() (int64, error) {
 func (s *AnalyticsService) Stop() {
 	close(s.metricsChan)
 	<-s.processingDone
-
-	// Сохраняем финальное состояние в кэш
 	s.saveToCache()
 }
