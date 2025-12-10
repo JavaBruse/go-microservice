@@ -32,12 +32,44 @@ var (
 		},
 		[]string{"method", "endpoint"},
 	)
+
+	AnomaliesDetected = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "anomalies_detected_total",
+			Help: "Total number of anomalies detected",
+		},
+	)
+
+	MetricsProcessed = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "metrics_processed_total",
+			Help: "Total number of metrics processed",
+		},
+	)
+
+	RollingAverageRPS = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "rolling_average_rps",
+			Help: "Rolling average RPS (50 events window)",
+		},
+	)
+
+	ProcessingQueueSize = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "processing_queue_size",
+			Help: "Current size of metrics processing queue",
+		},
+	)
 )
 
 func init() {
 	prometheus.MustRegister(TotalRequests)
 	prometheus.MustRegister(RequestDuration)
 	prometheus.MustRegister(ActiveRequests)
+	prometheus.MustRegister(AnomaliesDetected)
+	prometheus.MustRegister(MetricsProcessed)
+	prometheus.MustRegister(RollingAverageRPS)
+	prometheus.MustRegister(ProcessingQueueSize)
 }
 
 func MetricsMiddleware(next http.Handler) http.Handler {
@@ -66,4 +98,21 @@ type responseWriter struct {
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.status = code
 	rw.ResponseWriter.WriteHeader(code)
+}
+
+// Функции для обновления метрик из сервиса аналитики
+func IncrementMetricsProcessed() {
+	MetricsProcessed.Inc()
+}
+
+func IncrementAnomaliesDetected() {
+	AnomaliesDetected.Inc()
+}
+
+func SetRollingAverageRPS(value float64) {
+	RollingAverageRPS.Set(value)
+}
+
+func SetProcessingQueueSize(value float64) {
+	ProcessingQueueSize.Set(value)
 }
