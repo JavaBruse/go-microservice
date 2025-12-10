@@ -14,16 +14,12 @@ spec:
           args:
             - |
               echo "Starting load test..."
-              # Ждем готовности сервиса
               sleep 10
-              
-              # Генерация нагрузки 1000 RPS на 3 минуты
               for i in $(seq 1 180); do
-                # Отправляем 100 запросов в секунду
                 for j in $(seq 1 100); do
-                  curl -s -X POST http://go-microservice/api/analytics/metrics \
+                  curl -s -X POST http://go-microservice.iot-analytics.svc.cluster.local/api/analytics/metrics \
                     -H "Content-Type: application/json" \
-                    -d "{\"device_id\":\"device_\$(($RANDOM % 100))\",\"cpu_usage\":$((RANDOM % 100)),\"memory_mb\":$((RANDOM % 2048)),\"rps\":$((800 + RANDOM % 400))}" &
+                    -d "{\"device_id\":\"device_$(($RANDOM % 100))\",\"cpu_usage\":$((RANDOM % 100)),\"memory_mb\":$((RANDOM % 2048)),\"rps\":$((800 + RANDOM % 400))}" &
                 done
                 sleep 1
                 echo "Second $i: 100 requests sent"
