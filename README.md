@@ -116,6 +116,7 @@ kubectl port-forward svc/grafana 3000:3000 -n iot-analytics --address='0.0.0.0'
 
 ```bash
 kubectl apply -f k8s/load-test-job.yaml -n iot-analytics
+kubectl delete job load-test -n iot-analytics
 
 # В терминале 1 - логи теста
 kubectl logs -f job/load-test -n iot-analytics
