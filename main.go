@@ -28,7 +28,7 @@ func initRedis() *redis.Client {
 
 	// Если хост/порт не заданы - используем дефолтные
 	if redisHost == "" {
-		redisHost = "redis"
+		redisHost = "redis.iot-analytics.svc.cluster.local"
 	}
 	if redisPort == "" {
 		redisPort = "6379"
