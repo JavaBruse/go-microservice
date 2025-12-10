@@ -14,12 +14,12 @@ spec:
           args:
             - |
               echo "Нагрузка пошла...";
-              end=$((SECONDS+180));
-              while [ $SECONDS -lt $end ]; do
-                for i in {1..500}; do
+              end=$(( $(date +%s) + 180 ));
+              while [ $(date +%s) -lt $end ]; do
+                for i in $(seq 1 500); do
                   curl -X POST http://go-microservice.iot-analytics.svc.cluster.local/api/analytics/metrics \
                     -H "Content-Type: application/json" \
-                    -d "{\"device_id\":\"device_$(($RANDOM%100))\",\"cpu_usage\":$((RANDOM%100))}" \
+                    -d "{\"device_id\":\"device_$((RANDOM%100))\",\"cpu_usage\":$((RANDOM%100))}" \
                     --connect-timeout 2 --max-time 3 \
                     -s -o /dev/null &
                 done;
