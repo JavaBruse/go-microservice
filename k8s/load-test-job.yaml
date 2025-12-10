@@ -1,10 +1,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: 1000rps-load-test
+  name: load-test
   namespace: iot-analytics
 spec:
-  ttlSecondsAfterFinished: 300
+  ttlSecondsAfterFinished: 600
   template:
     spec:
       containers:
@@ -13,40 +13,34 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              echo "=== 1000 RPS LOAD TEST ===";
+              echo "=== LOAD TEST 1000 RPS ===";
               URL="http://go-microservice.iot-analytics.svc.cluster.local/api/analytics/metrics";
               
-              # 60 секунд по 1000 RPS
               for sec in $(seq 1 60); do
                 start_time=$(date +%s%N);
               
-                # 1000 запросов в секунду (50 потоков × 20 запросов)
-                for thread in $(seq 1 50); do
-                  for req in $(seq 1 20); do
-                    curl -s -X POST "$URL" \
-                      -H "Content-Type: application/json" \
-                      -d "{\"device_id\":\"device_$((RANDOM%1000))\",\"cpu_usage\":$((RANDOM%100)),\"memory_mb\":$((RANDOM%2048)),\"rps\":$((RANDOM%2000))}" \
-                      --connect-timeout 1 --max-time 2 \
-                      -o /dev/null -w "%{http_code}" &
-                  done;
+                # 1000 запросов в секунду
+                for i in $(seq 1 1000); do
+                  curl -s -X POST "$URL" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"device_id\":\"device_$((RANDOM%1000))\",\"cpu_usage\":$((RANDOM%100)),\"memory_mb\":$((RANDOM%2048)),\"rps\":1000}" \
+                    --connect-timeout 1 --max-time 2 \
+                    -o /dev/null &
                 done;
               
-                # Ждем завершения всех запросов
                 wait;
-              
                 end_time=$(date +%s%N);
                 duration_ms=$(( (end_time - start_time) / 1000000 ));
               
-                # Спим оставшееся время до 1 секунды
                 if [ $duration_ms -lt 1000 ]; then
                   sleep_ms=$(( 1000 - duration_ms ));
                   sleep 0.$(printf "%03d" $sleep_ms);
                 fi;
               
-                echo "Second $sec: 1000 requests sent";
+                echo "Секунда $sec: 1000 запросов отправлено";
               done;
               
-              echo "=== 1000 RPS TEST COMPLETE ===";
+              echo "=== ТЕСТ ЗАВЕРШЕН ===";
           resources:
             limits:
               memory: "1Gi"
