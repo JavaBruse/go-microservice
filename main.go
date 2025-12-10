@@ -60,12 +60,10 @@ func main() {
 
 	r := mux.NewRouter()
 
-	// Middleware ДО объявления маршрутов
 	routerWithMiddleware := r.PathPrefix("").Subrouter()
 	routerWithMiddleware.Use(utils.RateLimitMiddleware)
 	routerWithMiddleware.Use(metrics.MetricsMiddleware)
 
-	// Все маршруты через routerWithMiddleware
 	routerWithMiddleware.HandleFunc("/api/analytics/metrics", metricsHandler.ReceiveMetrics).Methods("POST")
 	routerWithMiddleware.HandleFunc("/api/analytics/stats", metricsHandler.GetAnalytics).Methods("GET")
 	routerWithMiddleware.HandleFunc("/api/analytics/anomalies", func(w http.ResponseWriter, r *http.Request) {

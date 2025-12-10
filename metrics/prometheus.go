@@ -100,7 +100,6 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
-// Функции для обновления метрик из сервиса аналитики
 func IncrementMetricsProcessed() {
 	MetricsProcessed.Inc()
 }

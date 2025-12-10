@@ -70,10 +70,10 @@ kubectl apply -f k8s/grafana-deployment.yaml -n iot-analytics
 kubectl get all -n iot-analytics
 ```
 ```shell
-# Удали только микросервис, Redis и Prometheus
+# Удалить только микросервис, Redis и Prometheus
 kubectl delete deployment go-microservice redis prometheus -n iot-analytics
 
-# Запусти снова
+# Повторный запуск Redis и Prometheus, deployment
 kubectl apply -f k8s/redis-deployment.yaml
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/prometheus-deployment.yaml
