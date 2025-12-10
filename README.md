@@ -1,9 +1,9 @@
 # Высоконагруженный IoT сервис с AI-оптимизацией на Go
 
-## О проекте
+## Введение
 
 Сервис для обработки потоковых метрик от IoT-устройств с аналитикой нагрузки, обнаружением аномалий и автоматическим
-масштабированием в Kubernetes. Обрабатывает более 1000 RPS с latency < 50мс.
+масштабированием в Kubernetes. Обрабатывает более 1000 RPS.
 
 ## Технические требования
 
@@ -16,6 +16,8 @@
 - Точность детекции >70%
 - False positive <10%
 
+
+# Развертывание
 ## Kubernetes
 
 ### 1. Minikube
@@ -45,7 +47,11 @@ kubectl get pods -A
 ### 2. Docker build
 
 ```shell
+# сборка
+go build -o main .
+# упаклвка
 docker build -t go-microservice:latest .
+# загрузка
 minikube image load go-microservice:latest
 ```
 
@@ -73,44 +79,43 @@ kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/prometheus-deployment.yaml
 ```
 
-
-![img_3.png](img_3.png)
+![img_7.png](img_7.png)
 
 ### 4. Пробрасываем порты grafana
 
 ```shell
 kubectl port-forward svc/grafana 3000:3000 -n iot-analytics --address='0.0.0.0'
 ```
+### 5. Grafana графики
 
-````### 5. Grafana графики
-
+```cookie
 - Панель 1: Нагрузка и RPS
 
 ```cookie
 Тип: Time series
-Запрос 1: rate(http_requests_total[1m])
-Запрос 2: rolling_average_rps
+Запрос 1: rate(http_requests_total{app="go-microservice"}[1m])
+Запрос 2: rolling_average_rps{app="go-microservice"}
 ```
 
 - Панель 2: Аномалии
 
 ```cookie
 Тип: Stat
-Запрос 1: anomalies_detected_total
+Запрос 1: anomalies_detected_total{app="go-microservice"}
 Тип: Gauge
-Запрос 2: anomalies_detected_total / metrics_processed_total * 100
+Запрос 2: anomalies_detected_total{app="go-microservice"} / metrics_processed_total{app="go-microservice"} * 100
 Тип: Time series
-Запрос 3: rate(anomalies_detected_total[5m])
+Запрос 3: rate(anomalies_detected_total{app="go-microservice"}[5m])
 ```
 
 - Панель 3: Производительность
 
 ```cookie
 Тип: Time series
-Запрос 1: rate(process_cpu_seconds_total[5m]) * 100
+Запрос 1: rate(process_cpu_seconds_total{app="go-microservice"}[5m]) * 100
 Тип: Time series
-Запрос 2: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) * 1000
-```````
+Запрос 2: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{app="go-microservice"}[5m])) * 1000
+```
 
 ## Нагрузочное тестирование
 
@@ -123,18 +128,20 @@ kubectl logs -f job/load-test -n iot-analytics
 
 # В терминале 2 - автоскейлинг
 watch -n 2 'kubectl get hpa,pods -n iot-analytics'
+
+# Тест идет 120 секунд, для удаление job
+kubectl delete job load-test -n iot-analytics --ignore-not-found
 ```
+## Производительность
+![img_2.png](img_2.png)
+## Нагрузка и RPS
+![img_4.png](img_4.png)
+## Аномалии
+![img_5.png](img_5.png)
+## Аналитика
+![img_6.png](img_6.png)
 
 
-## Неудачи
-Сходу нагрузка не пошла, в связи с тем, что load-test отправляет запросы напрямую на go-microservice
-```bash
-# Было:
-curl -s -X POST http://go-microservice/api/analytics/metrics
+## Заключение
+Развернут высоконагруженный Go-сервис в Kubernetes, обрабатывающий 3000 RPS. Настроены автоскейлинг, мониторинг через Prometheus/Grafana и детекция аномалий. Все цели ТЗ достигнуты.
 
-# Стало (добавь namespace):
-curl -s -X POST http://go-microservice.iot-analytics.svc.cluster.local/api/analytics/metrics
-```
-
-
-## Структура проекта
