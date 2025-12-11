@@ -10,4 +10,5 @@ data:
   redis.port: "6379"
   redis.max_memory: "256mb"
   redis.eviction_policy: "allkeys-lru"
+  redis.password: "redispass123"
   cache.ttl_minutes: "5"
