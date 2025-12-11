@@ -194,14 +194,11 @@ func (s *AnalyticsService) detectAnomaly(metric models.Metric) bool {
 	if len(s.metricsWindow) < 10 {
 		return false
 	}
-
 	mean, stdDev := s.calculateStats()
 	if stdDev == 0 {
 		return false
 	}
-
 	zScore := math.Abs(float64(metric.RPS)-mean) / stdDev
-
 	return zScore > s.anomalyThreshold
 }
 

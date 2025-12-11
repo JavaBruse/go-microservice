@@ -52,25 +52,17 @@ Namespace: iot-analytics
 - Аналитика аномалий (analytics_service.go)
 
 ```go
-// Скользящее окно для расчёта rolling average
-type AnalyticsService struct {
-metricsWindow    []models.Metric
-maxWindowSize    int // 50 events
-anomalyThreshold float64 // 2.0 (Z-score threshold)
-
-// Асинхронная обработка
-metricsChan    chan models.Metric // Buffer: 1000
-processingDone chan bool
-}
-
 // Метод детекции аномалий (Z-score)
 func (s *AnalyticsService) detectAnomaly(metric models.Metric) bool {
-mean, stdDev := s.calculateStats()
-if stdDev == 0 {
-return false
-}
-zScore := math.Abs(float64(metric.RPS)-mean) / stdDev
-return zScore > s.anomalyThreshold // > 2σ
+    if len(s.metricsWindow) < 10 {
+        return false
+    }
+    mean, stdDev := s.calculateStats()
+    if stdDev == 0 {
+        return false
+    }
+    zScore := math.Abs(float64(metric.RPS)-mean) / stdDev
+    return zScore > s.anomalyThreshold
 }
 ```
 
@@ -85,15 +77,15 @@ var limiter = rate.NewLimiter(rate.Limit(1000), 5000)
 
 ```go
 // 8 ключевых метрик для мониторинга
-var (
-TotalRequests     // Общее количество запросов
-RequestDuration   // Время выполнения
-ActiveRequests    // Активные запросы
-AnomaliesDetected // Обнаруженные аномалии
-MetricsProcessed    // Обработанные метрики
-RollingAverageRPS   // Скользящее среднее RPS
-ProcessingQueueSize // Размер очереди
-)
+func init() {
+    prometheus.MustRegister(TotalRequests)          // Общее количество запросов
+    prometheus.MustRegister(RequestDuration)        // Время выполнения
+    prometheus.MustRegister(ActiveRequests)         // Активные запросы
+    prometheus.MustRegister(AnomaliesDetected)      // Обнаруженные аномалии
+    prometheus.MustRegister(MetricsProcessed)       // Обработанные метрики
+    prometheus.MustRegister(RollingAverageRPS)      // Скользящее среднее RPS
+    prometheus.MustRegister(ProcessingQueueSize)    // Размер очереди
+}
 ```
 
 ## 3. Развертывание в Kubernetes
