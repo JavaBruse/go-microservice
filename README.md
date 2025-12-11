@@ -280,6 +280,49 @@ kubectl delete job load-test -n iot-analytics --ignore-not-found
 
 ![img_6.png](img_6.png)
 
+### Тест на 500 RPS yf 
+```bash
+          args:
+            - |
+              echo "=== 500 RPS LOAD TEST (REAL FIRE) ===";
+              URL="http://go-microservice/api/analytics/metrics";
+
+              for sec in $(seq 1 300); do
+                start_time=$(date +%s);
+
+                seq 1 500 | xargs -P 500 -I {} curl -s -X POST "$URL" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"device_id\":\"device_$((RANDOM%1000))\",\"cpu_usage\":$((RANDOM%100)),\"rps\":500}" \
+                  --connect-timeout 0.5 --max-time 1 -o /dev/null 2>&1 &
+
+                now=$(date +%s);
+                elapsed=$((now - start_time));
+
+                if [ $elapsed -lt 1 ]; then
+                  sleep $((1 - elapsed));
+                fi
+
+                echo "Second $sec: 500 requests FIRED (took ${elapsed}s)";
+              done
+
+              echo "=== TEST COMPLETE ===";
+              wait;
+
+```
+#### Производительность
+![img_3.png](img_3.png)
+#### Нагрузка и RPS
+
+![img_8.png](img_8.png)
+
+#### Аномалии, странно, но их не было.
+
+![img_10.png](img_10.png)
+
+#### Аналитика
+
+![img_9.png](img_9.png)
+
 ## 5. Заключение
 
 Развернут высоконагруженный Go-сервис в Kubernetes, обрабатывающий 3000 RPS. Настроены автоскейлинг, мониторинг через
