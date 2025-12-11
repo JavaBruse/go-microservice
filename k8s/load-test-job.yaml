@@ -13,37 +13,34 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              echo "=== 3000 RPS LOAD TEST ===";
+              echo "=== 500 RPS LOAD TEST (300 seconds) ===";
               URL="http://go-microservice/api/analytics/metrics";
               
-              # 30 потоков по 100 запросов = 500 RPS
               for sec in $(seq 1 300); do
-                start=$(date +%s%N);
+                start_time=$(date +%s);
               
-                for thread in $(seq 1 5); do
-                  for i in $(seq 1 100); do
-                    curl -s -X POST "$URL" \
-                      -H "Content-Type: application/json" \
-                      -d "{\"device_id\":\"device_$((RANDOM%1000))\",\"cpu_usage\":$((RANDOM%100)),\"rps\":3000}" \
-                      --connect-timeout 1 --max-time 2 -o /dev/null &
-                  done
+                # 500 запросов параллельно
+                for i in $(seq 1 500); do
+                  curl -s -X POST "$URL" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"device_id\":\"device_$((RANDOM%1000))\",\"cpu_usage\":$((RANDOM%100)),\"rps\":500}" \
+                    --connect-timeout 1 --max-time 2 -o /dev/null &
                 done
               
                 wait;
-                end=$(date +%s%N);
-                duration=$(( (end - start) / 1000000 ));
+                end_time=$(date +%s);
+                elapsed=$((end_time - start_time));
               
-                if [ $duration -lt 1000 ]; then
-                  sleep_ms=$((1000 - duration));
-                  sleep 0.$(printf "%03d" $sleep_ms);
+                if [ $elapsed -lt 1 ]; then
+                  sleep 1;
                 fi
               
-                echo "Секунда $sec: ~500 запросов";
+                echo "Second $sec: 500 requests (took ${elapsed}s)";
               done
               
-              echo "=== ТЕСТ ЗАВЕРШЕН ===";
+              echo "=== TEST COMPLETE ===";
           resources:
             limits:
-              memory: "8Gi"
-              cpu: "8000m"
+              memory: "2Gi"
+              cpu: "2000m"
       restartPolicy: Never
