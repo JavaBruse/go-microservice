@@ -253,7 +253,7 @@ kubectl logs -f job/load-test -n iot-analytics
 # В терминале 2 - автоскейлинг
 watch -n 2 'kubectl get hpa,pods -n iot-analytics'
 
-# Тест идет 120 секунд, для удаление job
+# Для удаление job
 kubectl delete job load-test -n iot-analytics --ignore-not-found
 ```
 
@@ -318,7 +318,7 @@ kubectl delete job load-test -n iot-analytics --ignore-not-found
 
 ## 5. Заключение
 
-Развернут высоконагруженный Go-сервис в Kubernetes, обрабатывающий 3000 RPS. Настроены автоскейлинг, мониторинг через
+Развернут высоконагруженный Go-сервис в Kubernetes, обрабатывающий 3000 RPS и 500 RPS. Настроены автоскейлинг, мониторинг через
 Prometheus/Grafana и детекция аномалий. Все цели достигнуты.
 
 ## 6. Ссылки и ресурсы
