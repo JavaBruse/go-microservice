@@ -125,7 +125,7 @@ kubectl get pods -A
 #### Сборка и загрузка образа docker
 
 ```shell
-# Сблорка
+# Сборка
 go build -o main .
 # Упаковка
 docker build -t go-microservice:latest .
@@ -209,7 +209,7 @@ kubectl port-forward svc/grafana 3000:3000 -n iot-analytics --address='0.0.0.0'
 
 ## 4. Нагрузочное тестирование
 
-#### Конфигурация теста
+#### Конфигурация теста 3000 RPS
 
 ```bash
 # k8s/load-test-job.yaml
@@ -273,7 +273,7 @@ kubectl delete job load-test -n iot-analytics --ignore-not-found
 
 ![img_6.png](img_6.png)
 
-### Тест на 500 RPS
+### Конфигурация теста 500 RPS
 ```bash
           args:
             - |
