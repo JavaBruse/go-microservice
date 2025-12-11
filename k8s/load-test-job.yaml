@@ -13,38 +13,33 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              echo "=== 500 RPS LOAD TEST (NO WAIT) ===";
+              echo "=== 500 RPS LOAD TEST ===";
               URL="http://go-microservice/api/analytics/metrics";
 
               for sec in $(seq 1 300); do
-                start_time=$(date +%s.%N);
+                start_sec=$(date +%s);
 
-                # 500 запросов в фоне БЕЗ ожидания
+                # 500 запросов параллельно
                 for i in $(seq 1 500); do
                   curl -s -X POST "$URL" \
                     -H "Content-Type: application/json" \
                     -d "{\"device_id\":\"device_$((RANDOM%1000))\",\"cpu_usage\":$((RANDOM%100)),\"rps\":500}" \
-                    --connect-timeout 1 --max-time 2 -o /dev/null >/dev/null 2>&1 &
+                    --connect-timeout 1 --max-time 2 -o /dev/null 2>&1 &
                 done
 
-                # Считаем время до конца секунды
-                end_time=$(date +%s.%N);
-                elapsed=$(echo "$end_time - $start_time" | bc);
+                # Ждём ровно 1 секунду от начала
+                now=$(date +%s);
+                elapsed=$((now - start_sec));
 
-                # Ждем ТОЛЬКО до конца секунды (если успели быстро)
-                if (( $(echo "$elapsed < 1" | bc -l) )); then
-                  sleep_time=$(echo "1 - $elapsed" | bc);
-                  sleep $sleep_time;
+                if [ $elapsed -lt 1 ]; then
+                  sleep $((1 - elapsed));
                 fi
 
-                echo "Second $sec: launched 500 requests";
-
-                # НЕ ждем завершения! Процессы остаются висеть
+                echo "Second $sec: 500 requests launched";
               done
 
               echo "=== TEST COMPLETE ===";
-              echo "Ожидание завершения висящих процессов...";
-              wait;  # Только в конце
+              wait;  # Ждём все процессы в конце
           resources:
             limits:
               memory: "2Gi"

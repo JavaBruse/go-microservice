@@ -161,6 +161,7 @@ kubectl delete deployment go-microservice redis prometheus -n iot-analytics
 kubectl delete deployment grafana -n iot-analytics
 kubectl delete configmap configmap -n iot-analytics
 # Повторный запуск Redis и Prometheus, deployment
+kubectl apply -f k8s/configmap.yaml -n iot-analytics
 kubectl apply -f k8s/redis-deployment.yaml
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/prometheus-deployment.yaml
