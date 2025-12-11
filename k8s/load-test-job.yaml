@@ -17,7 +17,7 @@ spec:
               URL="http://go-microservice/api/analytics/metrics";
               
               # 30 потоков по 100 запросов = 3000 RPS
-              for sec in $(seq 1 120); do
+              for sec in $(seq 1 300); do
                 start=$(date +%s%N);
               
                 for thread in $(seq 1 30); do

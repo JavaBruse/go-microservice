@@ -205,21 +205,9 @@ kubectl port-forward svc/grafana 3000:3000 -n iot-analytics --address='0.0.0.0'
 
 ```cookie
 Тип: Time series
-# Запрос 1: CPU контейнера (как у HPA)
-sum(rate(container_cpu_usage_seconds_total{namespace="iot-analytics", pod=~"go-microservice-.*"}[5m])) by (pod) * 100
-Легенда: {{pod}} CPU
+Запрос 1: sum(rate(container_cpu_usage_seconds_total{namespace="iot-analytics", pod=~"go-microservice.*"}[5m])) by (pod) * 100
 Тип: Time series
-# Запрос 2: CPU процесса Go (твоя старая метрика)
-rate(process_cpu_seconds_total{app="go-microservice"}[5m]) * 100
-Легенда: Go Process CPU
-Тип: Time series
-# Запрос 3: Память контейнера
-container_memory_usage_bytes{namespace="iot-analytics", pod=~"go-microservice-.*"} / 1024 / 1024
-Легенда: {{pod}} Memory
-Тип: Time series
-# Запрос 4: Latency P95
-histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{app="go-microservice"}[5m])) * 1000
-Легенда: P95 Latency (ms)
+Запрос 2: sum(container_memory_usage_bytes{namespace="iot-analytics", pod=~"go-microservice.*"}) by (pod) / 1024 / 1024
 ```
 
 ## 4. Нагрузочное тестирование
