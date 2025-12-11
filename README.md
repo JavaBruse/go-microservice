@@ -214,26 +214,35 @@ kubectl port-forward svc/grafana 3000:3000 -n iot-analytics --address='0.0.0.0'
 
 #### Конфигурация теста
 
-```yaml
+```bash
 # k8s/load-test-job.yaml
-spec:
-  containers:
-    - name: load-tester
-      image: alpine/curl
-      command: [ "/bin/sh", "-c" ]
-      args:
-        - |
-          # 30 потоков × 100 запросов = 3000 RPS
-          for sec in $(seq 1 120); do
-            for thread in $(seq 1 30); do
-              for i in $(seq 1 100); do
-                curl -X POST "http://go-microservice/api/analytics/metrics" \
-                  -d "{\"device_id\":\"device_$((RANDOM%1000))\",\"cpu_usage\":$((RANDOM%100)),\"rps\":3000}" &
-              done
-            done
-            wait
-            echo "Секунда $sec: ~3000 запросов"
-          done
+  echo "=== 3000 RPS LOAD TEST ===";
+  URL="http://go-microservice/api/analytics/metrics";
+
+  # 30 потоков по 100 запросов = 3000 RPS
+  for sec in $(seq 1 300); do
+  start=$(date +%s%N);
+
+  for thread in $(seq 1 30); do
+  for i in $(seq 1 100); do
+  curl -s -X POST "$URL" \
+-H "Content-Type: application/json" \
+  -d "{\"device_id\":\"device_$((RANDOM%1000))\",\"cpu_usage\":$((RANDOM%100)),\"rps\":3000}" \
+  --connect-timeout 1 --max-time 2 -o /dev/null &
+  done
+  done
+
+  wait;
+  end=$(date +%s%N);
+  duration=$(( (end - start) / 1000000 ));
+
+  if [ $duration -lt 1000 ]; then
+  sleep_ms=$((1000 - duration));
+  sleep 0.$(printf "%03d" $sleep_ms);
+  fi
+
+echo "Секунда $sec: ~3000 запросов";
+  done
 ```
 
 #### Запуск теста
