@@ -13,33 +13,33 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              echo "=== 500 RPS LOAD TEST ===";
+              echo "=== 500 RPS LOAD TEST (REAL FIRE) ===";
               URL="http://go-microservice/api/analytics/metrics";
 
+              # Функция для запуска 500 запросов за секунду
               for sec in $(seq 1 300); do
-                start_sec=$(date +%s);
+                start_time=$(date +%s);
 
-                # 500 запросов параллельно
-                for i in $(seq 1 500); do
-                  curl -s -X POST "$URL" \
-                    -H "Content-Type: application/json" \
-                    -d "{\"device_id\":\"device_$((RANDOM%1000))\",\"cpu_usage\":$((RANDOM%100)),\"rps\":500}" \
-                    --connect-timeout 1 --max-time 2 -o /dev/null 2>&1 &
-                done
+                # Запускаем 500 запросов ОДНОВРЕМЕННО без ожидания
+                seq 1 500 | xargs -P 500 -I {} curl -s -X POST "$URL" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"device_id\":\"device_$((RANDOM%1000))\",\"cpu_usage\":$((RANDOM%100)),\"rps\":500}" \
+                  --connect-timeout 0.5 --max-time 1 -o /dev/null 2>&1 &
 
-                # Ждём ровно 1 секунду от начала
+                # Считаем сколько времени прошло
                 now=$(date +%s);
-                elapsed=$((now - start_sec));
+                elapsed=$((now - start_time));
 
+                # Если успели меньше чем за секунду - ждем остаток
                 if [ $elapsed -lt 1 ]; then
                   sleep $((1 - elapsed));
                 fi
 
-                echo "Second $sec: 500 requests launched";
+                echo "Second $sec: 500 requests FIRED (took ${elapsed}s)";
               done
 
               echo "=== TEST COMPLETE ===";
-              wait;  # Ждём все процессы в конце
+              wait;
           resources:
             limits:
               memory: "2Gi"
