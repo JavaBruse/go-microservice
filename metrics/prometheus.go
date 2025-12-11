@@ -13,7 +13,7 @@ var (
 			Name: "http_requests_total",
 			Help: "Total number of HTTP requests",
 		},
-		[]string{"method", "endpoint", "status"},
+		[]string{"method", "endpoint", "status", "app"},
 	)
 
 	RequestDuration = prometheus.NewHistogramVec(
@@ -22,7 +22,7 @@ var (
 			Help:    "Request duration in seconds",
 			Buckets: prometheus.DefBuckets,
 		},
-		[]string{"method", "endpoint"},
+		[]string{"method", "endpoint", "app"},
 	)
 
 	ActiveRequests = prometheus.NewGaugeVec(
@@ -30,7 +30,7 @@ var (
 			Name: "http_requests_active",
 			Help: "Number of active HTTP requests",
 		},
-		[]string{"method", "endpoint"},
+		[]string{"method", "endpoint", "app"},
 	)
 
 	AnomaliesDetected = prometheus.NewCounter(
