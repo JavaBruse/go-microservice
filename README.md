@@ -32,7 +32,7 @@
 
 #### Высокоуровневая архитектура
 
-![arch.png](arch.png)
+
 
 ```mermaid
 
@@ -280,7 +280,7 @@ kubectl delete job load-test -n iot-analytics --ignore-not-found
 
 ![img_6.png](img_6.png)
 
-### Тест на 500 RPS yf 
+### Тест на 500 RPS
 ```bash
           args:
             - |
