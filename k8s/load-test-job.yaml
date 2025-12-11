@@ -13,33 +13,38 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              echo "=== 500 RPS LOAD TEST ===";
+              echo "=== 500 RPS LOAD TEST (NO WAIT) ===";
               URL="http://go-microservice/api/analytics/metrics";
 
               for sec in $(seq 1 300); do
-                start_sec=$(date +%s);
+                start_time=$(date +%s.%N);
 
-                # Пытаемся отправить 500 запросов как можно быстрее
+                # 500 запросов в фоне БЕЗ ожидания
                 for i in $(seq 1 500); do
                   curl -s -X POST "$URL" \
                     -H "Content-Type: application/json" \
                     -d "{\"device_id\":\"device_$((RANDOM%1000))\",\"cpu_usage\":$((RANDOM%100)),\"rps\":500}" \
-                    --connect-timeout 1 --max-time 2 -o /dev/null &
+                    --connect-timeout 1 --max-time 2 -o /dev/null >/dev/null 2>&1 &
                 done
 
-                wait;
-                end_sec=$(date +%s);
-                elapsed=$((end_sec - start_sec));
+                # Считаем время до конца секунды
+                end_time=$(date +%s.%N);
+                elapsed=$(echo "$end_time - $start_time" | bc);
 
-                echo "Second $sec: 500 requests sent (took ${elapsed}s)";
-
-                # Если успели быстрее секунды - ждем остаток
-                if [ $elapsed -lt 1 ]; then
-                  sleep $((1 - elapsed));
+                # Ждем ТОЛЬКО до конца секунды (если успели быстро)
+                if (( $(echo "$elapsed < 1" | bc -l) )); then
+                  sleep_time=$(echo "1 - $elapsed" | bc);
+                  sleep $sleep_time;
                 fi
+
+                echo "Second $sec: launched 500 requests";
+
+                # НЕ ждем завершения! Процессы остаются висеть
               done
 
               echo "=== TEST COMPLETE ===";
+              echo "Ожидание завершения висящих процессов...";
+              wait;  # Только в конце
           resources:
             limits:
               memory: "2Gi"
