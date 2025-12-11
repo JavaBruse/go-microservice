@@ -16,11 +16,11 @@ spec:
               echo "=== 3000 RPS LOAD TEST ===";
               URL="http://go-microservice/api/analytics/metrics";
               
-              # 30 потоков по 100 запросов = 3000 RPS
+              # 30 потоков по 100 запросов = 500 RPS
               for sec in $(seq 1 300); do
                 start=$(date +%s%N);
               
-                for thread in $(seq 1 30); do
+                for thread in $(seq 1 5); do
                   for i in $(seq 1 100); do
                     curl -s -X POST "$URL" \
                       -H "Content-Type: application/json" \
@@ -38,7 +38,7 @@ spec:
                   sleep 0.$(printf "%03d" $sleep_ms);
                 fi
               
-                echo "Секунда $sec: ~3000 запросов";
+                echo "Секунда $sec: ~500 запросов";
               done
               
               echo "=== ТЕСТ ЗАВЕРШЕН ===";

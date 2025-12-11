@@ -209,6 +209,8 @@ kubectl port-forward svc/grafana 3000:3000 -n iot-analytics --address='0.0.0.0'
 Запрос 1: sum(rate(container_cpu_usage_seconds_total{namespace="iot-analytics", pod=~"go-microservice.*"}[5m])) by (pod) * 100
 Тип: Time series
 Запрос 2: sum(container_memory_usage_bytes{namespace="iot-analytics", pod=~"go-microservice.*"}) by (pod) / 1024 / 1024
+Тип: Time series
+Задача 3: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{app="go-microservice"}[5m])) * 1000
 ```
 
 ## 4. Нагрузочное тестирование
@@ -250,7 +252,6 @@ echo "Секунда $sec: ~3000 запросов";
 
 ```bash
 kubectl apply -f k8s/load-test-job.yaml -n iot-analytics
-kubectl delete job load-test -n iot-analytics
 
 # В терминале 1 - логи теста
 kubectl logs -f job/load-test -n iot-analytics
