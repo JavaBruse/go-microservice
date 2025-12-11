@@ -13,31 +13,32 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              echo "=== 500 RPS LOAD TEST (300 seconds) ===";
+              echo "=== 500 RPS LOAD TEST ===";
               URL="http://go-microservice/api/analytics/metrics";
-              
+
               for sec in $(seq 1 300); do
-                start_time=$(date +%s);
-              
-                # 500 запросов параллельно
+                start_sec=$(date +%s);
+
+                # Пытаемся отправить 500 запросов как можно быстрее
                 for i in $(seq 1 500); do
                   curl -s -X POST "$URL" \
                     -H "Content-Type: application/json" \
                     -d "{\"device_id\":\"device_$((RANDOM%1000))\",\"cpu_usage\":$((RANDOM%100)),\"rps\":500}" \
                     --connect-timeout 1 --max-time 2 -o /dev/null &
                 done
-              
+
                 wait;
-                end_time=$(date +%s);
-                elapsed=$((end_time - start_time));
-              
+                end_sec=$(date +%s);
+                elapsed=$((end_sec - start_sec));
+
+                echo "Second $sec: 500 requests sent (took ${elapsed}s)";
+
+                # Если успели быстрее секунды - ждем остаток
                 if [ $elapsed -lt 1 ]; then
-                  sleep 1;
+                  sleep $((1 - elapsed));
                 fi
-              
-                echo "Second $sec: 500 requests (took ${elapsed}s)";
               done
-              
+
               echo "=== TEST COMPLETE ===";
           resources:
             limits:
